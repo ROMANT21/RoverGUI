@@ -36,17 +36,16 @@ To use React, we have to install Node.js
 [here's](https://nodejs.org/en/download/) a link to the installer.
 
 To ensure you've downloaded everything, run:
-'''
+```
 npx -v
 ``` 
-which should show something likw `9.2.0`
+which should show something like `9.2.0`
 
 and 
 ```
 npm -v
 ```
 which should show something like `9.2.0`
-```
 # Running the Web App #
 First we need to start the API (the backend):
 ```

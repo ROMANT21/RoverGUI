@@ -131,7 +131,7 @@ while True:
     msg = f'Image {i}'
 
     # open camera
-    print(captures[0].read())
+    # print(captures[0].read())
     images = [cap.read() for cap in captures]
 
     if images[0] is None:

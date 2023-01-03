@@ -35,7 +35,7 @@ To use React, we have to install Node.js
 
 [here's](https://nodejs.org/en/download/) a link to the installer.
 
-To ensure you've downloaded everything, run:
+To ensure you've downloaded node, run:
 ```
 npx -v
 ``` 
@@ -45,7 +45,15 @@ and
 ```
 npm -v
 ```
-which should show something like `9.2.0`
+which should show something like `9.2.0`. 
+
+Then run 
+```
+cd react-flask-app
+npm install
+```
+to install all required dependencies.
+
 # Running the Web App #
 First we need to start the API (the backend):
 ```
@@ -53,9 +61,9 @@ cd api
 # activate venv
 flask run
 ```
-Now open another terminal
+(`python api.py` also works)
 
-Then we can start React (the frontend):
+Now open another terminal. Then we can start React (the frontend):
 ```
 npm start
 ```

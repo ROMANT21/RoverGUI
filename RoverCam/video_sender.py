@@ -121,7 +121,7 @@ cmd_socket.bind(cmd_hostname)
 cap = VideoStream(src=0)
 other_cap = VideoStream(src=1)
 
-captures = [cap]
+captures = [cap, other_cap]
 
 stopped = False
 

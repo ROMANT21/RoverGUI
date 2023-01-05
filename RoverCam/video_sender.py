@@ -41,7 +41,6 @@ class VideoStream:
     def read(self):
         # return the frame most recently read
         grabbed, frame = self.stream.read()
-        print(grabbed)
         if grabbed:
             return frame
 

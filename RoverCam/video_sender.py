@@ -89,7 +89,8 @@ ap.add_argument("-o", "--port", type=int, default=5555,
                 help="ephemeral port number of the server (1024 to 65535)")
 args = vars(ap.parse_args())
 
-hostname = 'tcp://{}:{}'.format(args['ip'], args['port'])
+pub_hostname = 'tcp://{}:{}'.format(args['ip'], args['port'])
+cmd_hostname = 'tcp://{}:{}'.format(args['ip'], args['port']+1)
 
 # create the zmq context and socket
 # note, the zmq context only needs to be created once but it
@@ -97,13 +98,13 @@ hostname = 'tcp://{}:{}'.format(args['ip'], args['port'])
 context = zmq.Context()
 
 # create a publisher socket
-socket = context.socket(zmq.PUB)
+pub_socket = context.socket(zmq.PUB)
 
 # set the high water mark to 2
 # this means that if the subscriber is not receiving messages
 # the publisher will drop all messages that are not the current frame
-socket.setsockopt(zmq.SNDHWM, 3)
-socket.setsockopt(zmq.RCVHWM, 3)
+pub_socket.setsockopt(zmq.SNDHWM, 3)
+pub_socket.setsockopt(zmq.RCVHWM, 3)
 
 # set linger to 0
 # this means that if the video stream is closed it won't try to deliver 
@@ -112,23 +113,47 @@ socket.setsockopt(zmq.RCVHWM, 3)
 # set immediate to 1
 # this will only queue messages if the subscriber is ready to receive them
 # socket.setsockopt(zmq.IMMEDIATE, 1)
-socket.bind(hostname)
+pub_socket.bind(pub_hostname)
+
+cmd_socket = context.socket(zmq.REP)
+cmd_socket.bind(cmd_hostname)
 
 cap = VideoStream(src=0)
 other_cap = VideoStream(src=1)
 
 captures = [cap]
 
+stopped = False
 
 green = (0, 255, 0)
 
 i = 0
 
 while True:
+
+
+    # check for a command
+    try:
+        cmd = cmd_socket.recv_json(zmq.NOBLOCK)
+        print(f'Received command: {cmd}')
+        if cmd == 'stop':
+            stopped = True
+            cmd_socket.send_string('stopped')
+        elif cmd == 'start':
+            stopped = False
+            cmd_socket.send_string('started')
+    except zmq.Again:
+        pass
+    except zmq.ZMQError as e:
+        print(e)
+
+    if stopped:
+        continue
+
     i = i + 1
     print(f'Sending image {i}')
     msg = f'Image {i}'
-
+    
     # open camera
     # print(captures[0].read())
     images = [cap.read() for cap in captures]
@@ -149,10 +174,10 @@ while True:
     )
 
     # send the metadata about the image first
-    socket.send_json(md, zmq.SNDMORE)
+    pub_socket.send_json(md, zmq.SNDMORE)
 
     # send the image
     # encode the image as a jpeg
     encoded = [encode_jpeg(image, 20) for image in images]
     for enc_image in encoded:
-        socket.send(enc_image, zmq.NOBLOCK)
+        pub_socket.send(enc_image, zmq.NOBLOCK)

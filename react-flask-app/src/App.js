@@ -10,18 +10,26 @@ function App() {
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        <img src="/video_feed/0"></img>
+        {/* <img src="/video_feed/0"></img>
         <img src="/video_feed/1"></img>
-        <img src="/video_feed/2"></img>
-        <Streams/>
-        <button onClick={handleStop}>Stop Stream</button>
-        <button onClick={handleStart}>Start Stream</button>
+        <img src="/video_feed/2"></img> */}
+        <CameraStream id='0'/>
+        <CameraStream id='1'/>
+        <CameraStream id='2'/>
+        <div>
+          <button onClick={handleStop}>Stop Stream</button>
+          <button onClick={handleStart}>Start Stream</button>
+        </div>
+        <div>
+          Quality Slider: <input onChange={sendQuality} type='range' min='0' max='100' class='slider' id='quality_slider'></input>
+        </div>
       </header>
     </div>
   );
 }
 
-function Streams() {
+function sendQuality() {
+  StreamControl.SendValue("quality", document.getElementById("quality_slider").value);
 }
 
 function handleStop() {

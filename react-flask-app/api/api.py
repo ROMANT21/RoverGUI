@@ -31,7 +31,7 @@ def video_feed_stream(stream_id):
 
 @app.route('/stream_control', methods=['POST'], strict_slashes=False)
 def video_control():
-    command = request.json['cmd']
+    command = request.json
     print(command)
     try:
         response = sc.send_command(command)

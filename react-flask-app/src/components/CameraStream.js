@@ -9,20 +9,14 @@ export class CameraStream extends React.Component {
     }
     
     componentDidMount() {
-        this.setState({
-        stream: new MediaSource()
-        });
+        // this.setState({
+        // stream: new MediaSource()
+        // });
     }
     
     render() {
-        // get streams from video_feed
-        let feed = document.getElementById("video_feed");
-        console.log(feed)
-
         return (
-        <div>
-            <img src="\video_feed"></img>
-        </div>
+        <img src={"/video_feed/" + this.props.id}></img>
         );
     }
 }

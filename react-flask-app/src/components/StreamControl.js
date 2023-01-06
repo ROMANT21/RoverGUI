@@ -20,4 +20,19 @@ export default class StreamControl {
             console.log(error);
         });
     }
+
+    static SendValue(key, value) {
+            return fetch('/stream_control', 
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({"cmd": "set", "key": key, "value": value})
+                })
+                .then(response => response.json())
+            .catch(error => {  
+                console.log(error);
+            });
+        }
 }

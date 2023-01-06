@@ -129,19 +129,28 @@ green = (0, 255, 0)
 
 i = 0
 
+quality = 20
+
 while True:
 
 
     # check for a command
     try:
         cmd = cmd_socket.recv_json(zmq.NOBLOCK)
-        print(f'Received command: {cmd}')
-        if cmd == 'stop':
+        print('Received command')
+        print(cmd)
+        if cmd['cmd'] == 'stop':
             stopped = True
             cmd_socket.send_string('stopped')
-        elif cmd == 'start':
+        elif cmd['cmd'] == 'start':
             stopped = False
             cmd_socket.send_string('started')
+        elif cmd['cmd'] == 'set':
+            if cmd['key'] == 'quality':
+                quality = int(cmd['value'])
+                cmd_socket.send_string('quality set')
+        else:
+            cmd_socket.send_string('unknown command')
     except zmq.Again:
         pass
     except zmq.ZMQError as e:
@@ -178,6 +187,6 @@ while True:
 
     # send the image
     # encode the image as a jpeg
-    encoded = [encode_jpeg(image, 20) for image in images]
+    encoded = [encode_jpeg(image, quality) for image in images]
     for enc_image in encoded:
         pub_socket.send(enc_image, zmq.NOBLOCK)

@@ -59,7 +59,7 @@ class FrameProvider(object):
             if frames is not None:
                 self.frames = frames
                 self.num_streams = len(frames)
-            time.sleep(0.001)
+            # time.sleep(0.001)
 
     def get_info(self):
         return {'num_streams': self.num_streams}

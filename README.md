@@ -67,6 +67,10 @@ Now open another terminal. Then we can start React (the frontend):
 ```
 npm start
 ```
-# Finale #
-You should now see something like this
+Lastly, open another terminal and type
+```
+python video_sender.py
+```
+
+Then you should see something (kinda) like this:
 ![cool guy](coolguy.png)

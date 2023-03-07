@@ -15,7 +15,6 @@ camera1 = VideoStreamWidget(0)  # For Windows: src=0,1,... For Linux: '/dev/vide
 #camera2 = VideoStreamWidget(0)
 time.sleep(1)                   # Let cameras bake
 
-
 cameraList = [camera1] #, camera2]
 
 # Start sending images until CTRL+C

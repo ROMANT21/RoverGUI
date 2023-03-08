@@ -1,11 +1,19 @@
 """
-A Video Sender made with Image ZMQ, specified as ZMQ Publisher
+A Video Sender made with pyZMQ and OpenCV
 """
 import cv2
 import zmq
 import numpy as np
 from VideoStreamer import VideoStreamWidget
 import time
+import argparse
+
+# Create arguement args
+parser = argparse.ArgumentParser(description='Video Sender')
+parser.add_argument("-s", "--source", type=int, nargs='+', default=[0], help="Source of video stream")
+parser.add_argument("-i", "--ip", type=str, default="*", help="IP address to bind to")
+parser.add_argument("-p", "--port", type=int, default=5555, help="Port to bind to")
+args = parser.parse_args()
 
 # Create ZMQ Context and Publisher Socket for sending frames
 context = zmq.Context()
@@ -17,16 +25,16 @@ publisher.setsockopt(zmq.SNDHWM, 1)  # Set high water mark to 1 to drop frames i
 publisher.setsockopt(zmq.SNDBUF, 1)  # Set send buffer to 1 to drop frames if queue is full
 
 # Open camera instances for capturing streams
-camera1 = VideoStreamWidget(0)  # For Windows: src=0,1,... For Linux: '/dev/video*'
-camera2 = VideoStreamWidget(1)
-time.sleep(1)                   # Let cameras bake
-
-cameraList = [camera1 , camera2]
+cameraList = [] # List of camera instances (Probably better way to store cameras)
+for i in range(len(args.source)):
+    camera = VideoStreamWidget(args.source[i])
+    cameraList.append(camera)
+print("Camera instances created")
 
 # Start sending images until CTRL+C
 i = 0   # Index for numbering frames
 while True:
-    i = i + 1
+    
     cameraIdx = 0   # For labeling Streams
     for camera in cameraList:
         
@@ -34,7 +42,7 @@ while True:
         try:
             frame = camera.read_frame()
         except AttributeError:
-            pass
+            break
 
         # Add counter value to the image
         frame = cv2.resize(frame, (640, 480))
@@ -52,3 +60,4 @@ while True:
 
         # Increment camera index
         cameraIdx = cameraIdx + 1
+        i = i + 1

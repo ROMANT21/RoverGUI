@@ -9,6 +9,7 @@ class VideoStreamWidget(object):
         # Open and configure camera
         self.capture = cv2.VideoCapture(src)
         self.capture.set(cv2.CAP_PROP_BUFFERSIZE, 2)
+        time.sleep(1) # Let camera bake
         self.fps = 1/30     # Set FPS of camera stream (default 30 fps)
         self.fps_ms = int(self.fps * 1000)
 

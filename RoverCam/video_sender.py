@@ -10,7 +10,7 @@ import argparse
 
 # Create arguement args
 parser = argparse.ArgumentParser(description='Video Sender')
-parser.add_argument("-s", "--source", type=int, nargs='+', default=[0], help="Source of video stream")
+parser.add_argument("-s", "--source", type=int, nargs='+', default=[0], help="Source of video streams (can have multiple)")
 parser.add_argument("-i", "--ip", type=str, default="*", help="IP address to bind to")
 parser.add_argument("-p", "--port", type=int, default=5555, help="Port to bind to")
 args = parser.parse_args()

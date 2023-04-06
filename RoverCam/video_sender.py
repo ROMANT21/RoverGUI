@@ -1,192 +1,63 @@
-import argparse
-import socket
-from signal import SIGINT, signal
-from sys import exit
-import time
-
+"""
+A Video Sender made with pyZMQ and OpenCV
+"""
 import cv2
-import numpy as np
 import zmq
+import numpy as np
+from VideoStreamer import VideoStreamWidget
+import time
+import argparse
 
-WIDTH = 1280
-HEIGHT = 720
+# Create arguement args
+parser = argparse.ArgumentParser(description='Video Sender')
+parser.add_argument("-s", "--source", type=int, nargs='+', default=[0], help="Source of video streams (can have multiple)")
+parser.add_argument("-i", "--ip", type=str, default="*", help="IP address to bind to")
+parser.add_argument("-p", "--port", type=int, default=5555, help="Port to bind to")
+args = parser.parse_args()
 
-
-class VideoStream:
-    '''
-    Class to handle video streaming from a camera
-    '''
-    def __init__(self, src=0, name='VideoStream'):
-        # initialize the video camera stream and set the
-        # frame size and encoding
-        self.src = src
-        self._get_stream(src)
-
-        # initialize the stream name
-        self.name = name
-
-        # initialize the capture stop event
-        self.stopped = False
-
-        self.error = False
-
-    def _get_stream(self, src=0):
-        # return the video camera stream
-        self.stream = cv2.VideoCapture(src)
-        self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
-        self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
-        self.stream.set(cv2.CAP_PROP_FOURCC,
-                        cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
-
-    def read(self):
-        # return the frame most recently read
-        grabbed, frame = self.stream.read()
-        if grabbed:
-            return frame
-
-    def start(self):
-        self.stopped = False
-
-    def stop(self):
-        self.stopped = True
-
-    def close(self):
-        self.stream.release()
-
-
-def encode_jpeg(image, quality):
-    '''
-    Encode an image as a jpeg
-    
-    Args:
-        image: the image to encode
-        quality: the quality of the image (0-100)
-        
-    Returns:
-        the encoded image
-    '''
-    return cv2.imencode('.jpg', image, [int(cv2.IMWRITE_JPEG_QUALITY), quality])[1].tobytes()
-
-
-def cleanup():
-    cap.close()
-    context.destroy()
-
-
-def handler(signal_received, frame):
-    cleanup()
-    print('SIGINT or CTRL-C detected. Exiting gracefully')
-    exit(0)
-
-# bind the handler to SIGINT
-signal(SIGINT, handler)
-
-# construct the argument parser and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--ip", type=str, default="*",
-                help="ip address of the device")
-ap.add_argument("-o", "--port", type=int, default=5555,
-                help="ephemeral port number of the server (1024 to 65535)")
-args = vars(ap.parse_args())
-
-pub_hostname = 'tcp://{}:{}'.format(args['ip'], args['port'])
-cmd_hostname = 'tcp://{}:{}'.format(args['ip'], args['port']+1)
-
-# create the zmq context and socket
-# note, the zmq context only needs to be created once but it
-# can create multiple sockets
+# Create ZMQ Context and Publisher Socket for sending frames
 context = zmq.Context()
+publisher = context.socket(zmq.PUB)
+publisher.bind("tcp://*:5555")
 
-# create a publisher socket
-pub_socket = context.socket(zmq.PUB)
+# Set socket behavior
+publisher.setsockopt(zmq.SNDHWM, 1)  # Set high water mark to 1 to drop frames if queue is full
+publisher.setsockopt(zmq.SNDBUF, 1)  # Set send buffer to 1 to drop frames if queue is full
 
-# set the high water mark to 2
-# this means that if the subscriber is not receiving messages
-# the publisher will drop all messages that are not the current frame
-pub_socket.setsockopt(zmq.SNDHWM, 3)
-pub_socket.setsockopt(zmq.RCVHWM, 3)
+# Open camera instances for capturing streams
+cameraList = [] # List of camera instances (Probably better way to store cameras)
+for i in range(len(args.source)):
+    camera = VideoStreamWidget(args.source[i])
+    cameraList.append(camera)
+print("Camera instances created")
 
-# set linger to 0
-# this means that if the video stream is closed it won't try to deliver 
-# any messages that are still in the queue
-# socket.setsockopt(zmq.LINGER, 0)
-# set immediate to 1
-# this will only queue messages if the subscriber is ready to receive them
-# socket.setsockopt(zmq.IMMEDIATE, 1)
-pub_socket.bind(pub_hostname)
-
-cmd_socket = context.socket(zmq.REP)
-cmd_socket.bind(cmd_hostname)
-
-cap = VideoStream(src=0)
-other_cap = VideoStream(src=1)
-
-captures = [cap, other_cap]
-
-stopped = False
-
-green = (0, 255, 0)
-
-i = 0
-
-quality = 20
-
+# Start sending images until CTRL+C
+i = 0   # Index for numbering frames
 while True:
-
-
-    # check for a command
-    try:
-        cmd = cmd_socket.recv_json(zmq.NOBLOCK)
-        print('Received command')
-        print(cmd)
-        if cmd['cmd'] == 'stop':
-            stopped = True
-            cmd_socket.send_string('stopped')
-        elif cmd['cmd'] == 'start':
-            stopped = False
-            cmd_socket.send_string('started')
-        elif cmd['cmd'] == 'set':
-            if cmd['key'] == 'quality':
-                quality = int(cmd['value'])
-                cmd_socket.send_string('quality set')
-        else:
-            cmd_socket.send_string('unknown command')
-    except zmq.Again:
-        pass
-    except zmq.ZMQError as e:
-        print(e)
-
-    if stopped:
-        continue
-
-    i = i + 1
-    print(f'Sending image {i}')
-    msg = f'Image {i}'
     
-    # open camera
-    # print(captures[0].read())
-    images = [cap.read() for cap in captures]
+    cameraIdx = 0   # For labeling Streams
+    for camera in cameraList:
+        
+        # Read frame from camera
+        try:
+            frame = camera.read_frame()
+        except AttributeError:
+            break
 
-    if images[0] is None:
-        print('No image')
-        continue
+        # Add counter value to the image
+        frame = cv2.resize(frame, (640, 480))
+        cv2.putText(frame, str(i), (100, 150), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 255), 4)
+        cv2.imshow(f"{cameraIdx} sender", frame)
+        cv2.waitKey(1)
 
-    # add text to image
-    for image in images:
-        cv2.putText(image, f'Image {i}', (50, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, green, 2, cv2.LINE_AA)
+        # Encode Message
+        quality = 95
+        jpg_buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), quality])[1].tobytes()
+        
+        md = dict(idx=cameraIdx, )
+        publisher.send_json(md, zmq.SNDMORE)
+        publisher.send(jpg_buffer)
 
-    # create metadata
-    md = dict(
-        type='jpg',
-        count=len(captures),
-    )
-
-    # send the metadata about the image first
-    pub_socket.send_json(md, zmq.SNDMORE)
-
-    # send the image
-    # encode the image as a jpeg
-    encoded = [encode_jpeg(image, quality) for image in images]
-    for enc_image in encoded:
-        pub_socket.send(enc_image, zmq.NOBLOCK)
+        # Increment camera index
+        cameraIdx = cameraIdx + 1
+        i = i + 1

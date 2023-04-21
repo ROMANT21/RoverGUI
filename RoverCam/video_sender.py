@@ -5,7 +5,6 @@ import cv2
 import zmq
 import numpy as np
 from VideoStreamer import VideoStreamWidget
-import time
 import argparse
 import threading
 
